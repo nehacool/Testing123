@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="DummyRule">
+  <Source>
+  
+ import sailpoint.object.Identity;
+ import sailpoint.object.Link;
+ import sailpoint.object.Application;
+  import sailpoint.object.Attributes;
+  import java.text.SimpleDateFormat;
+	import java.util.Date;
+  import java.util.ArrayList;
+  import java.util.*;
+  import sailpoint.api.Provisioner;
+  import sailpoint.object.ProvisioningPlan;
+			import sailpoint.object.ProvisioningPlan.AccountRequest;
+			import sailpoint.object.ProvisioningPlan.AttributeRequest;
+  import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+  import sailpoint.object.*;
+  import sailpoint.object.Filter.MatchMode;
+  import sailpoint.tools.GeneralException;
+  
+/*  
+  String returnVal = "Initial";
+  
+  
+  			Application appObj = (Application) context.getObjectByName(Application.class,"Windows Login (AD)");
+				Filter entFilter = Filter.and(Filter.eq("application",appObj),Filter.eq("value","CN=corp-IA-StandardAccess,OU=groups,DC=henkelgroup,DC=net"));
+				QueryOptions qo = new QueryOptions();
+				qo.addFilter(entFilter);
+				List ents = context.getObjects(ManagedAttribute.class, qo);
+  
+  if(null != ents &amp;&amp; ents.size()&gt;0){
+    returnVal = "Enitlement present ";
+    ManagedAttribute ent = ents.get(0);
+    returnVal = "Single Ent got it "+ent.getValue();
+     Boolean bool = (Boolean)ent.getAttribute("ownerApprovalNotReq");
+    returnVal = "The value is "+bool;
+    if(null !=bool &amp;&amp; bool){
+        returnVal = "The result is "+bool;
+      }
+  }
+  */
+  public static String getDescriptionfromADObj(String baseDN) {
+
+		try {
+			ManagedAttribute ma = context.getUniqueObject(ManagedAttribute.class,  Filter.ignoreCase(Filter.eq("value", baseDN)));
+			if (ma.getAttribute("description") != null) {
+				String desc = (String) ma.getAttribute("description");
+				log.debug("getDescriptionfromADObj -- desc : " + desc);
+				return desc;
+			}
+
+		} catch (GeneralException e) {
+			log.error("Error while executing the method - getDescriptionfromADObj from SyncUnixtoAD class");
+			e.printStackTrace();
+		}
+		log.debug("getDescriptionfromADObj -- description is null");
+		return "";
+	}
+  
+  
+  	public static int getgidNumberfromUnixGroup(String groupname) {
+		try {
+			QueryOptions qoUnixGroup = new QueryOptions();
+			//groupname = groupname.replace("corp-unix-", "");
+			String unixGroup = "";
+			qoUnixGroup.add(Filter.and(Filter.eq("application.name", UnixappName),Filter.and(Filter.like("value", groupname, MatchMode.START),Filter.like("value", "gid=", MatchMode.ANYWHERE))));
+			List unixGroups = context.getObjects(ManagedAttribute.class, qoUnixGroup);
+			// context.decache();
+			log.debug("getgidNumberfromUnixGroup -- unixGroups" + unixGroups);
+			if (!unixGroups.isEmpty()) {
+				unixGroup = unixGroups.get(0).getValue();
+				String splitValue = unixGroup.substring(unixGroup.indexOf("[gid="));
+				splitValue = splitValue.substring(splitValue.indexOf("=") + 1, splitValue.indexOf(" "));
+				int groupgidNumber = Integer.parseInt(splitValue);
+				log.debug("getgidNumberfromUnixGroup -- groupgidNumber" + groupgidNumber);
+				return groupgidNumber;
+			}
+
+		} catch (GeneralException e) {
+			log.error("Error while executing the method - getgidNumberfromUnixGroup from SyncUnixtoAD class");
+			e.printStackTrace();
+		}
+		return 0;
+	}
+  
+  
+  public static int getgidNumberfromADGroup(String groupDN) {
+		try {
+			ManagedAttribute ADGroup = context.getUniqueObject(ManagedAttribute.class, Filter.and(Filter.eq("application.name", ADappName), Filter.like("value", groupDN, MatchMode.EXACT)));
+			log.debug("getgidNumberfromADGroup -- ADGroup : " + ADGroup);
+			if (ADGroup != null) {
+				int groupgidNumber = 0;
+				if (ADGroup.getAttribute("gidNumber") != null) {
+					groupgidNumber = (int) ADGroup.getAttribute("gidNumber");
+				}
+				log.debug("getgidNumberfromADGroup -- groupgidNumber : " + groupgidNumber);
+				return groupgidNumber;
+			}
+
+		} catch (GeneralException e) {
+
+			log.error("Error while executing the method - getgidNumberfromADGroup from SyncUnixtoAD class");
+			e.printStackTrace();
+		}
+		return 0;
+	}
+  
+  public static String ADappName = "Windows Login (AD)";
+  public static String UnixappName = "Unix";
+return getDescriptionfromADObj("CN=corp-unix-p29uti,OU=unix,OU=groups,DC=henkelgroup,DC=net");
+                               
+  </Source>
+</Rule>
